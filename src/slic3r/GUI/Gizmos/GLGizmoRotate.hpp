@@ -5,7 +5,7 @@
 
 namespace Slic3r {
 namespace GUI {
-
+class Selection;
 class GLGizmoRotate : public GLGizmoBase
 {
     static const float Offset;
@@ -21,16 +21,16 @@ class GLGizmoRotate : public GLGizmoBase
 public:
     enum Axis : unsigned char
     {
-        X,
-        Y,
-        Z
+        X=0,
+        Y=1,
+        Z=2
     };
 
 private:
     Axis m_axis;
+    Vec3d  m_center;
+    float m_radius;
     double m_angle{ 0.0 };
-    Vec3d m_center{ Vec3d::Zero() };
-    float m_radius{ 0.0 };
     float m_snap_coarse_in_radius{ 0.0 };
     float m_snap_coarse_out_radius{ 0.0 };
     float m_snap_fine_in_radius{ 0.0 };
@@ -40,9 +40,12 @@ private:
     Transform3d m_orient_matrix{ Transform3d::Identity() };
 #endif // ENABLE_WORLD_COORDINATE
 
+    std::array<float, 4> m_drag_color;
+    std::array<float, 4> m_highlight_color;
+
+    GLModel m_cone;
 public:
     GLGizmoRotate(GLCanvas3D& parent, Axis axis);
-    GLGizmoRotate(const GLGizmoRotate& other);
     virtual ~GLGizmoRotate() = default;
 
     double get_angle() const { return m_angle; }
@@ -50,11 +53,27 @@ public:
 
     std::string get_tooltip() const override;
 
+    void start_dragging();
+    void stop_dragging();
+       
+    void enable_grabber();
+    void disable_grabber(); 
+
+    void set_highlight_color(const std::array<float, 4> &color);
+
+    /// <summary>
+    /// Postpone to Grabber for move
+    /// Detect move of object by dragging
+    /// </summary>
+    /// <param name="mouse_event">Keep information about mouse click</param>
+    /// <returns>Return True when use the information otherwise False.</returns>
+    bool on_mouse(const wxMouseEvent &mouse_event) override;
+    void dragging(const UpdateData &data);
 protected:
     bool on_init() override;
     std::string on_get_name() const override { return ""; }
     void on_start_dragging() override;
-    void on_update(const UpdateData& data) override;
+    void on_dragging(const UpdateData &data) override;
     void on_render() override;
     void on_render_for_picking() override;
 
@@ -78,7 +97,7 @@ private:
 
 class GLGizmoRotate3D : public GLGizmoBase
 {
-    std::vector<GLGizmoRotate> m_gizmos;
+    std::array<GLGizmoRotate, 3> m_gizmos;
 
 public:
     GLGizmoRotate3D(GLCanvas3D& parent, const std::string& icon_filename, unsigned int sprite_id);
@@ -96,6 +115,14 @@ public:
         return tooltip;
     }
 
+    /// <summary>
+    /// Postpone to Rotation
+    /// </summary>
+    /// <param name="mouse_event">Keep information about mouse click</param>
+    /// <returns>Return True when use the information otherwise False.</returns>
+    bool on_mouse(const wxMouseEvent &mouse_event) override;
+
+    void data_changed() override;
 protected:
     bool on_init() override;
     std::string on_get_name() const override;
@@ -109,25 +136,12 @@ protected:
         for (int i = 0; i < 3; ++i)
             m_gizmos[i].set_hover_id((m_hover_id == i) ? 0 : -1);
     }
-    void on_enable_grabber(unsigned int id) override
-    {
-        if (id < 3)
-            m_gizmos[id].enable_grabber(0);
-    }
-    void on_disable_grabber(unsigned int id) override
-    {
-        if (id < 3)
-            m_gizmos[id].disable_grabber(0);
-    }
+    
     bool on_is_activable() const override;
     void on_start_dragging() override;
     void on_stop_dragging() override;
-    void on_update(const UpdateData& data) override
-    {
-        for (GLGizmoRotate& g : m_gizmos) {
-            g.update(data);
-        }
-    }
+    void on_dragging(const UpdateData &data) override;
+        
     void on_render() override;
     void on_render_for_picking() override
     {

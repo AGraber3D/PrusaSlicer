@@ -203,7 +203,6 @@ GLGizmoEmboss::GLGizmoEmboss(GLCanvas3D &parent)
     , m_is_initialized(false) // initialize on first opening gizmo
     , m_rotate_gizmo(parent, GLGizmoRotate::Axis::Z)
 {
-    m_rotate_gizmo.set_group_id(0);
     // TODO: add suggestion to use https://fontawesome.com/
     // (copy & paste) unicode symbols from web    
 }

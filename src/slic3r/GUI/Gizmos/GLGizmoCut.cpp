@@ -38,6 +38,11 @@ std::string GLGizmoCut::get_tooltip() const
     return (m_hover_id == 0 || m_grabbers[0].dragging) ? "Z: " + format(cut_z, 2) : "";
 }
 
+bool GLGizmoCut::on_mouse(const wxMouseEvent &mouse_event)
+{
+    return use_grabbers(mouse_event);
+}
+
 bool GLGizmoCut::on_init()
 {
     m_grabbers.emplace_back();
@@ -53,7 +58,7 @@ std::string GLGizmoCut::on_get_name() const
 void GLGizmoCut::on_set_state()
 {
     // Reset m_cut_z on gizmo activation
-    if (get_state() == On)
+    if (m_state == On)
         m_cut_z = bounding_box().center().z();
 }
 
@@ -76,10 +81,10 @@ void GLGizmoCut::on_start_dragging()
     m_drag_center.z() = m_cut_z;
 }
 
-void GLGizmoCut::on_update(const UpdateData& data)
+void GLGizmoCut::on_dragging(const UpdateData &data)
 {
-    if (m_hover_id != -1)
-        set_cut_z(m_start_z + calc_projection(data.mouse_ray));
+    assert(m_hover_id != -1);
+    set_cut_z(m_start_z + calc_projection(data.mouse_ray));
 }
 
 void GLGizmoCut::on_render()
